@@ -25,6 +25,28 @@ if [ -e "${LOCAL_SEEDVR2_DIR}" ] || [ -L "${LOCAL_SEEDVR2_DIR}" ]; then
 fi
 ln -s "${PERSISTENT_SEEDVR2_DIR}" "${LOCAL_SEEDVR2_DIR}" || true
 
+# Only link SeedVR2 custom node from volume and install its requirements
+PERSISTENT_CUSTOM_NODES_DIR="/runpod-volume/ComfyUI/custom_nodes"
+LOCAL_CUSTOM_NODES_DIR="/comfyui/custom_nodes"
+SEEDVR2_NODE_NAME="ComfyUI-SeedVR2_VideoUpscaler"
+SEEDVR2_NODE_SRC="${PERSISTENT_CUSTOM_NODES_DIR}/${SEEDVR2_NODE_NAME}"
+SEEDVR2_NODE_DST="${LOCAL_CUSTOM_NODES_DIR}/${SEEDVR2_NODE_NAME}"
+
+mkdir -p "${LOCAL_CUSTOM_NODES_DIR}"
+if [ -d "${SEEDVR2_NODE_SRC}" ]; then
+    echo "SeedVR2 custom node bulundu; symlink oluşturuluyor..."
+    if [ -e "${SEEDVR2_NODE_DST}" ] || [ -L "${SEEDVR2_NODE_DST}" ]; then
+        rm -rf "${SEEDVR2_NODE_DST}"
+    fi
+    ln -s "${SEEDVR2_NODE_SRC}" "${SEEDVR2_NODE_DST}" || true
+    if [ -f "${SEEDVR2_NODE_SRC}/requirements.txt" ]; then
+        echo "SeedVR2 requirements yükleniyor: ${SEEDVR2_NODE_SRC}/requirements.txt"
+        pip install --no-cache-dir -r "${SEEDVR2_NODE_SRC}/requirements.txt" || true
+    fi
+else
+    echo "SeedVR2 custom node volume'da bulunamadı: ${SEEDVR2_NODE_SRC}"
+fi
+
 
 # ComfyUI ve RunPod Handler'ı Başlat
 # --extra-model-paths-config parametresini ComfyUI komutuna eklediğinizden emin olun!

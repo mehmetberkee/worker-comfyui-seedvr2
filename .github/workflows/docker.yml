@@ -41,6 +41,6 @@ jobs:
           platforms: linux/amd64
           push: true
           load: false
-          tags: ${{ vars.DOCKERHUB_REPO }}/${{ vars.DOCKERHUB_IMG }}:seedvr2
-          cache-from: type=registry,ref=${{ vars.DOCKERHUB_REPO }}/${{ vars.DOCKERHUB_IMG }}:buildcache
-          cache-to: type=registry,ref=${{ vars.DOCKERHUB_REPO }}/${{ vars.DOCKERHUB_IMG }}:buildcache,mode=max
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/worker-comfyui-seedvr2:seedvr2
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/worker-comfyui-seedvr2:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/worker-comfyui-seedvr2:buildcache,mode=max

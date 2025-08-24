@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+echo "--- start.sh Script Başlatıldı ---"
+
+# Use libtcmalloc for better memory management
+echo "TCMALLOC için kontrol ediliyor..."
+TCMALLOC="$(ldconfig -p | grep -Po "libtcmalloc.so.\d" | head -n 1)"
+if [ -n "$TCMALLOC" ]; then
+    export LD_PRELOAD="${TCMALLOC}"
+    echo "LD_PRELOAD ayarlandı: ${TCMALLOC}"
+else
+    echo "libtcmalloc bulunamadı, LD_PRELOAD ayarlanmadı."
+fi
+
+echo "Insightface kurulum adımları gereksiz, atlanıyor."
+
+echo "SEEDVR2 model konumu: yerel disk (/comfyui/models/SEEDVR2)"
+PERSISTENT_SEEDVR2_DIR="/runpod-volume/ComfyUI/models/SEEDVR2"
+LOCAL_SEEDVR2_DIR="/comfyui/models/SEEDVR2"
+MODEL_FILE="seedvr2_ema_7b-Q4_K_M.gguf"
+
+# Model yerelde yoksa ve volume'da varsa volume'dan kopyala (ağ yerine NVMe'den çalış)
+mkdir -p "${LOCAL_SEEDVR2_DIR}"
+if [ ! -f "${LOCAL_SEEDVR2_DIR}/${MODEL_FILE}" ] && [ -f "${PERSISTENT_SEEDVR2_DIR}/${MODEL_FILE}" ]; then
+    echo "SEEDVR2 model yerelde yok, volume'dan kopyalanıyor..."
+    cp -f "${PERSISTENT_SEEDVR2_DIR}/${MODEL_FILE}"	"${LOCAL_SEEDVR2_DIR}/${MODEL_FILE}"
+fi
+
+
+# ComfyUI ve RunPod Handler'ı Başlat
+# --extra-model-paths-config parametresini ComfyUI komutuna eklediğinizden emin olun!
+# Dockerfile'da ./extra_model_paths.yaml olarak kopyalandığı ve WORKDIR /comfyui olduğu için
+# doğru yol /comfyui/extra_model_paths.yaml olmalıdır.
+
+COMFYUI_BASE_ARGS="--disable-auto-launch --disable-metadata --extra-model-paths-config /comfyui/extra_model_paths.yaml"
+
+# Serve the API and don't shutdown the container
+if [ "$SERVE_API_LOCALLY" == "true" ]; then
+    echo "runpod-worker-comfy: ComfyUI (API modu) başlatılıyor..."
+    python3 /comfyui/main.py ${COMFYUI_BASE_ARGS} --listen &
+
+    echo "runpod-worker-comfy: RunPod Handler (API modu) başlatılıyor..."
+    python3 -u /rp_handler.py --rp_serve_api --rp_api_host=0.0.0.0
+else
+    echo "runpod-worker-comfy: ComfyUI (Worker modu) başlatılıyor..."
+    python3 /comfyui/main.py ${COMFYUI_BASE_ARGS} &
+
+    echo "runpod-worker-comfy: RunPod Handler (Worker modu) başlatılıyor..."
+    python3 -u /rp_handler.py
+fi
+
+echo "--- start.sh Script Tamamlandı ---"

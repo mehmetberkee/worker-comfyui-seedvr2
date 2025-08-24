@@ -1,0 +1,114 @@
+{
+  "input": {
+    "workflow": {
+      "31": {
+        "inputs": {
+          "model": "seedvr2_ema_7b-Q4_K_M.gguf",
+          "seed": 101,
+          "new_resolution": 1888,
+          "batch_size": 1,
+          "preserve_vram": true,
+          "images": [
+            "70",
+            0
+          ],
+          "block_swap_config": [
+            "34",
+            0
+          ]
+        },
+        "class_type": "SeedVR2",
+        "_meta": {
+          "title": "SeedVR2 Video Upscaler"
+        }
+      },
+      "34": {
+        "inputs": {
+          "blocks_to_swap": 36,
+          "use_non_blocking": true,
+          "offload_io_components": true,
+          "cache_model": true,
+          "enable_debug": true
+        },
+        "class_type": "SeedVR2BlockSwap",
+        "_meta": {
+          "title": "SeedVR2 BlockSwap Config"
+        }
+      },
+      "36": {
+        "inputs": {
+          "mask": [
+            "44",
+            1
+          ]
+        },
+        "class_type": "MaskToImage",
+        "_meta": {
+          "title": "Convert Mask to Image"
+        }
+      },
+      "44": {
+        "inputs": {
+          "image": "9c42f25b-41dd-46c2-a85a-f0702d70c747.png"
+        },
+        "class_type": "LoadImage",
+        "_meta": {
+          "title": "Load Image"
+        }
+      },
+      "65": {
+        "inputs": {
+          "upscale_method": "bicubic",
+          "megapixels": 0.2700000000000001,
+          "image": [
+            "44",
+            0
+          ]
+        },
+        "class_type": "ImageScaleToTotalPixels",
+        "_meta": {
+          "title": "Scale Image to Total Pixels"
+        }
+      },
+      "66": {
+        "inputs": {
+          "images": [
+            "70",
+            0
+          ]
+        },
+        "class_type": "PreviewImage",
+        "_meta": {
+          "title": "Preview Image"
+        }
+      },
+      "70": {
+        "inputs": {
+          "seed": 465264613456498,
+          "strength": 0.020000000000000004,
+          "image": [
+            "65",
+            0
+          ]
+        },
+        "class_type": "ImageAddNoise",
+        "_meta": {
+          "title": "ImageAddNoise"
+        }
+      },
+      "71": {
+        "inputs": {
+          "filename_prefix": "seedvr2/seedvr2",
+          "images": [
+            "31",
+            0
+          ]
+        },
+        "class_type": "SaveImage",
+        "_meta": {
+          "title": "Save Image"
+        }
+      }
+    }
+  }
+}

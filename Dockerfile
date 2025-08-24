@@ -23,16 +23,17 @@ RUN apt-get update && apt-get install -y \
 # Clean up to reduce image size
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Install comfy-cli
-RUN pip install comfy-cli
+# Install comfy-cli (no pip cache)
+RUN pip install --no-cache-dir comfy-cli && rm -rf /root/.cache/pip /root/.cache
 
 # Install ComfyUI
-RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.3.44
+RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.3.44 \
+ && rm -rf /root/.cache
 
 # Change working directory to ComfyUI
 WORKDIR /comfyui
 # Install runpod
-RUN pip install runpod requests
+RUN pip install --no-cache-dir runpod requests && rm -rf /root/.cache/pip /root/.cache
 
 # Pre-bake SeedVR2 model to avoid cold-start download
 # Note: We do not embed the 5GB SeedVR2 model in the image to save CI storage.

@@ -14,17 +14,16 @@ fi
 
 echo "Insightface kurulum adımları gereksiz, atlanıyor."
 
-echo "SEEDVR2 model konumu: yerel disk (/comfyui/models/SEEDVR2)"
+echo "SEEDVR2 model konumu: volume (/runpod-volume/ComfyUI/models/SEEDVR2)"
 PERSISTENT_SEEDVR2_DIR="/runpod-volume/ComfyUI/models/SEEDVR2"
 LOCAL_SEEDVR2_DIR="/comfyui/models/SEEDVR2"
-MODEL_FILE="seedvr2_ema_7b-Q4_K_M.gguf"
 
-# Model yerelde yoksa ve volume'da varsa volume'dan kopyala (ağ yerine NVMe'den çalış)
+# Yerel dizin oluşsun ama okuma volume'dan olsun
 mkdir -p "${LOCAL_SEEDVR2_DIR}"
-if [ ! -f "${LOCAL_SEEDVR2_DIR}/${MODEL_FILE}" ] && [ -f "${PERSISTENT_SEEDVR2_DIR}/${MODEL_FILE}" ]; then
-    echo "SEEDVR2 model yerelde yok, volume'dan kopyalanıyor..."
-    cp -f "${PERSISTENT_SEEDVR2_DIR}/${MODEL_FILE}"	"${LOCAL_SEEDVR2_DIR}/${MODEL_FILE}"
+if [ -e "${LOCAL_SEEDVR2_DIR}" ] || [ -L "${LOCAL_SEEDVR2_DIR}" ]; then
+    rm -rf "${LOCAL_SEEDVR2_DIR}"
 fi
+ln -s "${PERSISTENT_SEEDVR2_DIR}" "${LOCAL_SEEDVR2_DIR}" || true
 
 
 # ComfyUI ve RunPod Handler'ı Başlat

@@ -35,9 +35,7 @@ WORKDIR /comfyui
 RUN pip install runpod requests
 
 # Pre-bake SeedVR2 model to avoid cold-start download
-RUN mkdir -p /comfyui/models/SEEDVR2 \
- && wget -O /comfyui/models/SEEDVR2/seedvr2_ema_7b-Q4_K_M.gguf \
-    "https://huggingface.co/cmeka/SeedVR2-GGUF/resolve/main/seedvr2_ema_7b-Q4_K_M.gguf"
+# Note: We do not embed the 5GB SeedVR2 model in the image to save CI storage.
 
 # Support for the network volume
 ADD src/extra_model_paths.yaml ./

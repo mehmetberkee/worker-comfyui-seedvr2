@@ -44,6 +44,52 @@ RUN if [ -f /comfyui/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler/requirements.txt
       pip install --no-cache-dir -r /comfyui/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler/requirements.txt; \
     fi
 
+# Apply GGUF support PR and add gguf package
+RUN set -eux; \
+    cd /comfyui/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler; \
+    git fetch origin pull/78/head:pr-78 || true; \
+    git checkout pr-78 || true; \
+    pip install --no-cache-dir gguf;
+
+# Patch comfyui_node.py to include GGUF models in dropdown
+RUN python - <<'PY'
+import re
+from pathlib import Path
+p = Path('/comfyui/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler/src/interfaces/comfyui_node.py')
+text = p.read_text(encoding='utf-8')
+pattern = r"(\"model\"\s*:\s*\(\[)([\s\S]*?)(\],\s*\{[\s\S]*?\}\))"
+replacement = (
+    '"model": (['
+    '\n    "seedvr2_ema_3b_fp16.safetensors",\n'
+    '    "seedvr2_ema_7b_fp16.safetensors",\n'
+    '    "seedvr2_ema_7b_sharp_fp16.safetensors",\n'
+    '    "seedvr2_ema_3b_fp8_e4m3fn.safetensors",\n'
+    '    "seedvr2_ema_7b_fp8_e4m3fn.safetensors",\n'
+    '    "seedvr2_ema_7b_sharp_fp8_e4m3fn.safetensors",\n'
+    '    "seedvr2_ema_3b-Q3_K_M.gguf",\n'
+    '    "seedvr2_ema_3b-Q4_K_M.gguf",\n'
+    '    "seedvr2_ema_3b-Q5_K_M.gguf",\n'
+    '    "seedvr2_ema_3b-Q6_K.gguf",\n'
+    '    "seedvr2_ema_3b-Q8_0.gguf",\n'
+    '    "seedvr2_ema_7b-Q3_K_M.gguf",\n'
+    '    "seedvr2_ema_7b-Q4_K_M.gguf",\n'
+    '    "seedvr2_ema_7b-Q5_K_M.gguf",\n'
+    '    "seedvr2_ema_7b-Q6_K.gguf",\n'
+    '    "seedvr2_ema_7b-Q8_0.gguf",\n'
+    '    "seedvr2_ema_7b_sharp-Q3_K_M.gguf",\n'
+    '    "seedvr2_ema_7b_sharp-Q4_K_M.gguf",\n'
+    '    "seedvr2_ema_7b_sharp-Q5_K_M.gguf",\n'
+    '    "seedvr2_ema_7b_sharp-Q6_K.gguf",\n'
+    '    "seedvr2_ema_7b_sharp-Q8_0.gguf",\n'
+    '], {"default": "seedvr2_ema_3b_fp8_e4m3fn.safetensors"}),'
+)
+new_text = re.sub(pattern, replacement, text, flags=re.M)
+if new_text != text:
+    p.write_text(new_text, encoding='utf-8')
+else:
+    print('No model list pattern matched; leaving file unchanged')
+PY
+
 # Force offline for HF/Transformers to prevent auto model downloads at runtime
 ENV HF_HUB_OFFLINE=1 \
     TRANSFORMERS_OFFLINE=1 \

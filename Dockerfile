@@ -35,6 +35,20 @@ WORKDIR /comfyui
 # Install runpod
 RUN pip install --no-cache-dir runpod requests && rm -rf /root/.cache/pip /root/.cache
 
+# Install SeedVR2 custom node (without auto-downloading models)
+RUN mkdir -p /comfyui/custom_nodes \
+ && git clone --depth 1 https://github.com/numz/ComfyUI-SeedVR2_VideoUpscaler.git \
+      /comfyui/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler
+
+RUN if [ -f /comfyui/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler/requirements.txt ]; then \
+      pip install --no-cache-dir -r /comfyui/custom_nodes/ComfyUI-SeedVR2_VideoUpscaler/requirements.txt; \
+    fi
+
+# Force offline for HF/Transformers to prevent auto model downloads at runtime
+ENV HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    SEEDVR2_DISABLE_AUTO_DOWNLOAD=1
+
 # Pre-bake SeedVR2 model to avoid cold-start download
 # Note: We do not embed the 5GB SeedVR2 model in the image to save CI storage.
 

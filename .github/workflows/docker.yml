@@ -12,6 +12,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Compute dynamic tags
+        run: |
+          echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "DATE_TAG=$(date -u +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+
       - name: Free disk space
         run: |
           df -h
@@ -41,6 +46,10 @@ jobs:
           platforms: linux/amd64
           push: true
           load: false
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/worker-comfyui-seedvr2:seedvr2
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/worker-comfyui-seedvr2:seedvr2
+            ${{ secrets.DOCKERHUB_USERNAME }}/worker-comfyui-seedvr2:sha-${{ env.SHORT_SHA }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/worker-comfyui-seedvr2:run-${{ github.run_number }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/worker-comfyui-seedvr2:${{ env.DATE_TAG }}
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/worker-comfyui-seedvr2:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/worker-comfyui-seedvr2:buildcache,mode=max

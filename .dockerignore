@@ -1,0 +1,44 @@
+# VCS and CI
+.git
+.github
+
+# Python caches
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.tox
+**/.cache
+
+# Environments and node
+venv
+node_modules
+
+# IDE/editor
+.DS_Store
+.idea
+.vscode
+
+# Build artifacts
+**/dist
+**/build
+**/coverage
+**/reports
+**/artifacts
+
+# Logs/temp
+*.log
+*.tmp
+.tmp/
+
+# Not needed in image
+assets/
+*.md
+
+# Large model folders – use network volume at runtime
+ComfyUI/models/
+comfyui/models/
+runpod-volume/

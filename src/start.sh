@@ -41,7 +41,10 @@ if [ -d "${SEEDVR2_NODE_SRC}" ]; then
     ln -s "${SEEDVR2_NODE_SRC}" "${SEEDVR2_NODE_DST}" || true
     if [ -f "${SEEDVR2_NODE_SRC}/requirements.txt" ]; then
         echo "SeedVR2 requirements yükleniyor: ${SEEDVR2_NODE_SRC}/requirements.txt"
-        pip install --no-cache-dir -r "${SEEDVR2_NODE_SRC}/requirements.txt" || true
+        set -e  # Exit on any error during pip install
+        pip install --no-cache-dir -r "${SEEDVR2_NODE_SRC}/requirements.txt"
+        set +e
+        echo "SeedVR2 requirements başarıyla yüklendi"
     fi
 else
     echo "SeedVR2 custom node volume'da bulunamadı: ${SEEDVR2_NODE_SRC}"
@@ -54,20 +57,53 @@ fi
 # doğru yol /comfyui/extra_model_paths.yaml olmalıdır.
 
 COMFYUI_BASE_ARGS="--disable-auto-launch --disable-metadata --extra-model-paths-config /comfyui/extra_model_paths.yaml"
+COMFYUI_LOG_FILE="/tmp/comfyui_startup.log"
+
+# Function to check if SeedVR2 node is loaded
+check_seedvr2_node() {
+    echo "SeedVR2 node yüklenme kontrolü yapılıyor..."
+    sleep 5  # Wait for ComfyUI to fully initialize
+
+    # Check if SeedVR2 is in the loaded nodes by looking at ComfyUI's internal state
+    python3 -c "
+import sys
+sys.path.append('/comfyui')
+try:
+    from nodes import NODE_CLASS_MAPPINGS
+    if 'SeedVR2' in NODE_CLASS_MAPPINGS:
+        print('✓ SeedVR2 node başarıyla yüklendi: NODE_CLASS_MAPPINGS[\"SeedVR2\"] =', NODE_CLASS_MAPPINGS['SeedVR2'])
+    else:
+        print('✗ SeedVR2 node yüklenemedi. Mevcut node\'lar:', list(NODE_CLASS_MAPPINGS.keys())[:10], '...')
+        sys.exit(1)
+except Exception as e:
+    print('✗ SeedVR2 node kontrolü başarısız:', str(e))
+    sys.exit(1)
+"
+}
 
 # Serve the API and don't shutdown the container
 if [ "$SERVE_API_LOCALLY" == "true" ]; then
     echo "runpod-worker-comfy: ComfyUI (API modu) başlatılıyor..."
-    python3 /comfyui/main.py ${COMFYUI_BASE_ARGS} --listen &
+    python3 /comfyui/main.py ${COMFYUI_BASE_ARGS} --listen &> ${COMFYUI_LOG_FILE} &
 
     echo "runpod-worker-comfy: RunPod Handler (API modu) başlatılıyor..."
     python3 -u /rp_handler.py --rp_serve_api --rp_api_host=0.0.0.0
 else
     echo "runpod-worker-comfy: ComfyUI (Worker modu) başlatılıyor..."
-    python3 /comfyui/main.py ${COMFYUI_BASE_ARGS} &
+    python3 /comfyui/main.py ${COMFYUI_BASE_ARGS} &> ${COMFYUI_LOG_FILE} &
+
+    # Start tailing the log file in background for real-time monitoring
+    tail -n +1 -f ${COMFYUI_LOG_FILE} &
+    TAIL_PID=$!
+
+    # Check if SeedVR2 node loaded successfully
+    check_seedvr2_node
 
     echo "runpod-worker-comfy: RunPod Handler (Worker modu) başlatılıyor..."
-    python3 -u /rp_handler.py
+    python3 -u /rp_handler.py &
+
+    # Clean up tail process when RunPod handler exits
+    wait $TAIL_PID
 fi
 
 echo "--- start.sh Script Tamamlandı ---"

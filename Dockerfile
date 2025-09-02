@@ -1,22 +1,25 @@
 # Stage 1: Base image with common dependencies
-FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04 as base
+FROM nvidia/cuda:12.6.2-cudnn-runtime-ubuntu22.04 as base
 
 # Prevents prompts from packages asking for user input during installation
 ENV DEBIAN_FRONTEND=noninteractive
 # Prefer binary wheels over source distributions for faster pip installations
 ENV PIP_PREFER_BINARY=1
 # Ensures output from python is printed immediately to the terminal without buffering
-ENV PYTHONUNBUFFERED=1 
+ENV PYTHONUNBUFFERED=1
 # Speed up some cmake builds
 ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 
-# Install Python, git and other necessary tools
+# Install Python 3.12, git and other necessary tools
 RUN apt-get update && apt-get install -y \
-    python3.10 python3-pip git wget \
+    software-properties-common \
+ && add-apt-repository ppa:deadsnakes/ppa \
+ && apt-get update && apt-get install -y \
+    python3.12 python3.12-venv python3.12-distutils python3-pip git wget \
     libgl1 \
     libglib2.0-0 \
     libsm6 libxext6 libxrender1 \
- && ln -sf /usr/bin/python3.10 /usr/bin/python \
+ && ln -sf /usr/bin/python3.12 /usr/bin/python \
  && ln -sf /usr/bin/pip3 /usr/bin/pip
 
 
@@ -27,11 +30,17 @@ RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir comfy-cli && rm -rf /root/.cache/pip /root/.cache
 
 # Install ComfyUI
-RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.3.44 \
+RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 12.6 --nvidia --version 0.3.44 \
  && rm -rf /root/.cache
 
 # Change working directory to ComfyUI
 WORKDIR /comfyui
+# Install torch with CUDA 12.6 compatibility (required for SeedVR2)
+RUN pip install --no-cache-dir \
+    torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
+    --index-url https://download.pytorch.org/whl/cu126 \
+ && rm -rf /root/.cache/pip /root/.cache
+
 # Install runpod and base deps (no pip cache)
 RUN pip install --no-cache-dir runpod requests gguf && rm -rf /root/.cache/pip /root/.cache
 
